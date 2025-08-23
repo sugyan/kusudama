@@ -1,7 +1,8 @@
+import { OrbitControls } from "@react-three/drei";
+import { Canvas, useFrame, type ThreeElements } from "@react-three/fiber";
+import React, { useRef, useState } from "react";
 import * as THREE from "three";
 import "./App.css";
-import React, { useRef, useState } from "react";
-import { Canvas, useFrame, type ThreeElements } from "@react-three/fiber";
 
 function Box(props: ThreeElements["mesh"]): React.JSX.Element {
   const ref = useRef<THREE.Mesh>(null!);
@@ -37,6 +38,7 @@ function App(): React.JSX.Element {
       <pointLight position={[-10, -10, -10]} decay={0} intensity={Math.PI} />
       <Box position={[-1.2, 0, 0]} />
       <Box position={[1.2, 0, 0]} />
+      <OrbitControls />
     </Canvas>
   );
 }
