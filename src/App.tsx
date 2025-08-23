@@ -1,26 +1,63 @@
 import { OrbitControls } from "@react-three/drei";
-import { Canvas, useFrame, type ThreeElements } from "@react-three/fiber";
-import React, { useRef, useState } from "react";
+import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 import "./App.css";
 
-function Box(props: ThreeElements["mesh"]): React.JSX.Element {
-  const ref = useRef<THREE.Mesh>(null!);
-  const [hovered, hover] = useState(false);
-  const [clicked, click] = useState(false);
-  useFrame((_, delta) => (ref.current.rotation.x += delta));
+type Vec3 = [number, number, number];
+type HemisphereShellProps = {
+  position?: Vec3;
+  rotation?: Vec3;
+  color?: string;
+};
+
+function HemisphereShell({
+  position = [0, 0, 0],
+  rotation = [0, 0, 0],
+  color = "skyblue",
+}: HemisphereShellProps) {
+  // 厚みのある半球殻を2重のSphereGeometryで作る
+  // 外側
+  const outerRadius = 1;
+  const innerRadius = 0.95;
+  const widthSegments = 64;
+  const heightSegments = 32;
+  const phiStart = 0;
+  const phiLength = Math.PI;
+  // 半球の殻＋断面
   return (
-    <mesh
-      {...props}
-      ref={ref}
-      scale={clicked ? 1.5 : 1}
-      onClick={() => click(!clicked)}
-      onPointerOver={() => hover(true)}
-      onPointerOut={() => hover(false)}
-    >
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color={hovered ? "hotpink" : "orange"} />
-    </mesh>
+    <group position={position} rotation={rotation}>
+      {/* 外側半球 */}
+      <mesh castShadow receiveShadow>
+        <sphereGeometry
+          args={[
+            outerRadius,
+            widthSegments,
+            heightSegments,
+            phiStart,
+            phiLength,
+          ]}
+        />
+        <meshStandardMaterial color={color} side={THREE.FrontSide} />
+      </mesh>
+      {/* 内側半球 */}
+      <mesh castShadow receiveShadow>
+        <sphereGeometry
+          args={[
+            innerRadius,
+            widthSegments,
+            heightSegments,
+            phiStart,
+            phiLength,
+          ]}
+        />
+        <meshStandardMaterial color={color} side={THREE.BackSide} />
+      </mesh>
+      {/* 断面（円環） */}
+      <mesh position={[0, 0, 0]} rotation={[0, 0, 0]}>
+        <ringGeometry args={[innerRadius, outerRadius, 64]} />
+        <meshStandardMaterial color={color} side={THREE.BackSide} />
+      </mesh>
+    </group>
   );
 }
 
@@ -36,8 +73,17 @@ function App(): React.JSX.Element {
         intensity={Math.PI}
       />
       <pointLight position={[-10, -10, -10]} decay={0} intensity={Math.PI} />
-      <Box position={[-1.2, 0, 0]} />
-      <Box position={[1.2, 0, 0]} />
+      {/* 左右に半球殻を配置 */}
+      <HemisphereShell
+        position={[-0.2, 0, 0]}
+        rotation={[0, -Math.PI / 2, 0]}
+        color="skyblue"
+      />
+      <HemisphereShell
+        position={[0.2, 0, 0]}
+        rotation={[0, Math.PI / 2, 0]}
+        color="pink"
+      />
       <OrbitControls />
     </Canvas>
   );
