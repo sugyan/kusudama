@@ -102,12 +102,31 @@ function Confetti({
   const meshRef = useRef<THREE.Mesh>(null);
   const pos = useRef<Vec3>([...position]);
   const rot = useRef<Vec3>([...rotation]);
-
+  // velocityに揺らぎを持たせる
+  const velocityRef = useRef<Vec3>([...velocity]);
+  const frameCount = useRef(0);
+  // 各confettiごとに独立した更新間隔を持つ
+  function getRandomUpdateInterval() {
+    return Math.floor(5 + Math.random() * 20); // 5〜25frame
+  }
+  const updateInterval = useRef(getRandomUpdateInterval());
+  function setRandomVelocity() {
+    velocityRef.current[0] = (Math.random() - 0.5) * 0.1;
+    velocityRef.current[2] = (Math.random() - 0.5) * 0.1;
+    velocityRef.current[1] = -0.09 + Math.random() * 0.08;
+  }
   useFrame(() => {
     if (!active) return;
-    pos.current[0] += velocity[0];
-    pos.current[1] += velocity[1];
-    pos.current[2] += velocity[2];
+    if (pos.current[1] <= -5) return;
+    frameCount.current++;
+    if (frameCount.current >= updateInterval.current) {
+      setRandomVelocity();
+      frameCount.current = 0;
+      updateInterval.current = getRandomUpdateInterval(); // 次の間隔もランダム
+    }
+    pos.current[0] += velocityRef.current[0];
+    pos.current[1] += velocityRef.current[1];
+    pos.current[2] += velocityRef.current[2];
     rot.current[0] += rotationSpeed[0];
     rot.current[1] += rotationSpeed[1];
     rot.current[2] += rotationSpeed[2];
@@ -134,9 +153,14 @@ function App(): React.JSX.Element {
   });
   const handleClick = () => {
     setHovered(false);
-    setClicked(!clicked);
+    setClicked(true);
   };
-  // Confettiの初期値リストを生成（例: 20個、ランダムな位置・速度・色）
+  const handleHovered = (value: boolean) => {
+    if (!clicked) {
+      setHovered(value);
+    }
+  };
+  // Confettiの初期値リストを生成（例: 300個、ランダムな位置・速度・色）
   const confettiList = React.useMemo(() => {
     const colors = [
       "#ff5252", // 赤
@@ -152,25 +176,25 @@ function App(): React.JSX.Element {
       "#cddc39", // ライム
       "#e1bee7", // ラベンダー
     ];
-    return Array.from({ length: 250 }, () => ({
+    return Array.from({ length: 300 }, () => ({
       position: [
         (Math.random() - 0.5) * 1.2,
         Math.random() * 0.5,
         (Math.random() - 0.5) * 1.2,
       ] as Vec3,
       velocity: [
-        (Math.random() - 0.5) * 0.09, // 横方向の幅を広げる
-        -0.015 - Math.random() * 0.07, // 落下速度も幅を広げる
-        (Math.random() - 0.5) * 0.09,
+        (Math.random() - 0.5) * 0.1,
+        -0.09 + Math.random() * 0.08, // -0.09〜-0.01程度
+        (Math.random() - 0.5) * 0.1,
       ] as Vec3,
       color: colors[Math.floor(Math.random() * colors.length)],
-      size: [0.08 + Math.random() * 0.07, 0.12 + Math.random() * 0.08] as [
+      size: [0.07 + Math.random() * 0.07, 0.1 + Math.random() * 0.08] as [
         number,
         number
       ],
       rotation: [0, 0, Math.random() * Math.PI * 2] as Vec3,
       rotationSpeed: [
-        (Math.random() - 0.5) * 0.22, // 回転速度の幅を広げる
+        (Math.random() - 0.5) * 0.22,
         (Math.random() - 0.5) * 0.22,
         (Math.random() - 0.5) * 0.35,
       ] as Vec3,
@@ -194,7 +218,7 @@ function App(): React.JSX.Element {
             rotation={[0, -Math.PI / 2, 0]}
             hovered={hovered}
             handleClick={handleClick}
-            handleHovered={setHovered}
+            handleHovered={handleHovered}
           />
         </animated.group>
         <animated.group rotation={rotation1 as unknown as Vec3}>
@@ -203,7 +227,7 @@ function App(): React.JSX.Element {
             rotation={[0, +Math.PI / 2, 0]}
             hovered={hovered}
             handleClick={handleClick}
-            handleHovered={setHovered}
+            handleHovered={handleHovered}
           />
         </animated.group>
       </group>
