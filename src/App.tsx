@@ -82,17 +82,14 @@ function HemisphereShell({
 function App(): React.JSX.Element {
   const [clicked, setClicked] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const { rotation0, rotation1 } = useSpring({
+    rotation0: clicked ? [0, 0, -Math.PI / 2.2] : [0, 0, 0],
+    rotation1: clicked ? [0, 0, +Math.PI / 2.2] : [0, 0, 0],
+  });
   const handleClick = () => {
     setHovered(false);
     setClicked(!clicked);
   };
-  const spring = useSpring<{
-    rotation0: Vec3;
-    rotation1: Vec3;
-  }>({
-    rotation0: clicked ? [0, 0, -Math.PI / 2] : [0, 0, 0],
-    rotation1: clicked ? [0, 0, +Math.PI / 2] : [0, 0, 0],
-  });
   return (
     <Canvas>
       <ambientLight intensity={Math.PI / 2} />
@@ -105,7 +102,7 @@ function App(): React.JSX.Element {
       />
       <pointLight position={[-10, -10, -10]} decay={0} intensity={Math.PI} />
       <group position={[0, 2, 0]}>
-        <animated.group rotation={spring.rotation0}>
+        <animated.group rotation={rotation0 as unknown as Vec3}>
           <HemisphereShell
             position={[0, -1, 0]}
             rotation={[0, -Math.PI / 2, 0]}
@@ -114,7 +111,7 @@ function App(): React.JSX.Element {
             handleHovered={setHovered}
           />
         </animated.group>
-        <animated.group rotation={spring.rotation1}>
+        <animated.group rotation={rotation1 as unknown as Vec3}>
           <HemisphereShell
             position={[0, -1, 0]}
             rotation={[0, +Math.PI / 2, 0]}
