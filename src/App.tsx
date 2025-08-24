@@ -1,19 +1,28 @@
+import { animated, useSpring } from "@react-spring/three";
 import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
+import React, { useState } from "react";
 import * as THREE from "three";
 import "./App.css";
 
 type Vec3 = [number, number, number];
+
 type HemisphereShellProps = {
-  position?: Vec3;
-  rotation?: Vec3;
+  position: Vec3;
+  rotation: Vec3;
+  hovered: boolean;
   color?: string;
+  handleClick?: () => void;
+  handleHovered?: (hovered: boolean) => void;
 };
 
 function HemisphereShell({
-  position = [0, 0, 0],
-  rotation = [0, 0, 0],
-  color = "skyblue",
+  position,
+  rotation,
+  hovered,
+  color = "gold",
+  handleClick,
+  handleHovered,
 }: HemisphereShellProps) {
   // 厚みのある半球殻を2重のSphereGeometryで作る
   // 外側
@@ -26,8 +35,14 @@ function HemisphereShell({
   // 半球の殻＋断面
   return (
     <group position={position} rotation={rotation}>
-      {/* 外側半球 */}
-      <mesh castShadow receiveShadow>
+      {/* 外側半球（hoverで色変更） */}
+      <mesh
+        castShadow
+        receiveShadow
+        onPointerOver={() => handleHovered?.(true)}
+        onPointerOut={() => handleHovered?.(false)}
+        onClick={handleClick}
+      >
         <sphereGeometry
           args={[
             outerRadius,
@@ -37,7 +52,10 @@ function HemisphereShell({
             phiLength,
           ]}
         />
-        <meshStandardMaterial color={color} side={THREE.FrontSide} />
+        <meshStandardMaterial
+          color={hovered ? "hotpink" : color}
+          side={THREE.FrontSide}
+        />
       </mesh>
       {/* 内側半球 */}
       <mesh castShadow receiveShadow>
@@ -62,6 +80,19 @@ function HemisphereShell({
 }
 
 function App(): React.JSX.Element {
+  const [clicked, setClicked] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const handleClick = () => {
+    setHovered(false);
+    setClicked(!clicked);
+  };
+  const spring = useSpring<{
+    rotation0: Vec3;
+    rotation1: Vec3;
+  }>({
+    rotation0: clicked ? [0, 0, -Math.PI / 2] : [0, 0, 0],
+    rotation1: clicked ? [0, 0, +Math.PI / 2] : [0, 0, 0],
+  });
   return (
     <Canvas>
       <ambientLight intensity={Math.PI / 2} />
@@ -73,17 +104,26 @@ function App(): React.JSX.Element {
         intensity={Math.PI}
       />
       <pointLight position={[-10, -10, -10]} decay={0} intensity={Math.PI} />
-      {/* 左右に半球殻を配置 */}
-      <HemisphereShell
-        position={[-0.2, 0, 0]}
-        rotation={[0, -Math.PI / 2, 0]}
-        color="skyblue"
-      />
-      <HemisphereShell
-        position={[0.2, 0, 0]}
-        rotation={[0, Math.PI / 2, 0]}
-        color="pink"
-      />
+      <group position={[0, 2, 0]}>
+        <animated.group rotation={spring.rotation0}>
+          <HemisphereShell
+            position={[0, -1, 0]}
+            rotation={[0, -Math.PI / 2, 0]}
+            hovered={hovered}
+            handleClick={handleClick}
+            handleHovered={setHovered}
+          />
+        </animated.group>
+        <animated.group rotation={spring.rotation1}>
+          <HemisphereShell
+            position={[0, -1, 0]}
+            rotation={[0, +Math.PI / 2, 0]}
+            hovered={hovered}
+            handleClick={handleClick}
+            handleHovered={setHovered}
+          />
+        </animated.group>
+      </group>
       <OrbitControls />
     </Canvas>
   );
