@@ -1,7 +1,7 @@
 import { animated, useSpring } from "@react-spring/three";
 import { OrbitControls } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
-import React, { useState } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import React, { useRef, useState } from "react";
 import * as THREE from "three";
 import "./App.css";
 
@@ -79,6 +79,52 @@ function HemisphereShell({
   );
 }
 
+// Confetti（紙吹雪）コンポーネントの定義
+type ConfettiProps = {
+  position?: Vec3;
+  velocity?: Vec3;
+  color?: string;
+  size?: [number, number];
+  rotation?: Vec3;
+  rotationSpeed?: Vec3;
+  active?: boolean;
+};
+
+function Confetti({
+  position = [0, 0, 0],
+  velocity = [0, -0.02, 0],
+  color = "white",
+  size = [0.1, 0.2],
+  rotation = [0, 0, 0],
+  rotationSpeed = [0, 0, 0.1],
+  active = false,
+}: ConfettiProps) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const pos = useRef<Vec3>([...position]);
+  const rot = useRef<Vec3>([...rotation]);
+
+  useFrame(() => {
+    if (!active) return;
+    pos.current[0] += velocity[0];
+    pos.current[1] += velocity[1];
+    pos.current[2] += velocity[2];
+    rot.current[0] += rotationSpeed[0];
+    rot.current[1] += rotationSpeed[1];
+    rot.current[2] += rotationSpeed[2];
+    if (meshRef.current) {
+      meshRef.current.position.set(...pos.current);
+      meshRef.current.rotation.set(...rot.current);
+    }
+  });
+
+  return (
+    <mesh ref={meshRef} position={position} rotation={rotation}>
+      <planeGeometry args={size} />
+      <meshStandardMaterial color={color} />
+    </mesh>
+  );
+}
+
 function App(): React.JSX.Element {
   const [clicked, setClicked] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -90,6 +136,46 @@ function App(): React.JSX.Element {
     setHovered(false);
     setClicked(!clicked);
   };
+  // Confettiの初期値リストを生成（例: 20個、ランダムな位置・速度・色）
+  const confettiList = React.useMemo(() => {
+    const colors = [
+      "#ff5252", // 赤
+      "#ffd740", // 黄
+      "#69f0ae", // 緑
+      "#40c4ff", // 青
+      "#b388ff", // 紫
+      "#fff59d", // 淡黄
+      "#ffb6c1", // ピンク
+      "#ff9800", // オレンジ
+      "#8d6e63", // ブラウン
+      "#00bcd4", // シアン
+      "#cddc39", // ライム
+      "#e1bee7", // ラベンダー
+    ];
+    return Array.from({ length: 250 }, () => ({
+      position: [
+        (Math.random() - 0.5) * 1.2,
+        Math.random() * 0.5,
+        (Math.random() - 0.5) * 1.2,
+      ] as Vec3,
+      velocity: [
+        (Math.random() - 0.5) * 0.09, // 横方向の幅を広げる
+        -0.015 - Math.random() * 0.07, // 落下速度も幅を広げる
+        (Math.random() - 0.5) * 0.09,
+      ] as Vec3,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      size: [0.08 + Math.random() * 0.07, 0.12 + Math.random() * 0.08] as [
+        number,
+        number
+      ],
+      rotation: [0, 0, Math.random() * Math.PI * 2] as Vec3,
+      rotationSpeed: [
+        (Math.random() - 0.5) * 0.22, // 回転速度の幅を広げる
+        (Math.random() - 0.5) * 0.22,
+        (Math.random() - 0.5) * 0.35,
+      ] as Vec3,
+    }));
+  }, []);
   return (
     <Canvas>
       <ambientLight intensity={Math.PI / 2} />
@@ -120,6 +206,11 @@ function App(): React.JSX.Element {
             handleHovered={setHovered}
           />
         </animated.group>
+      </group>
+      <group position={[0, 1, 0]}>
+        {confettiList.map((props, idx) => (
+          <Confetti active={clicked} {...props} key={idx} />
+        ))}
       </group>
       <OrbitControls />
     </Canvas>
